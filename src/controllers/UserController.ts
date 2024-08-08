@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { UserRepository } from '../repositories/UserRepository';
 
 interface BodyType {
 	name: string;
@@ -10,7 +8,7 @@ interface BodyType {
 }
 
 export const UserGetAll = async (req: Request, res: Response) => {
-	res.status(StatusCodes.OK).json(await prisma.user.findMany());
+	res.status(StatusCodes.OK).json(await UserRepository.getAll());
 };
 
 export const UserPost = async (req: Request, res: Response) => {
@@ -21,21 +19,17 @@ export const UserPost = async (req: Request, res: Response) => {
 		});
 		return;
 	}
-	const userExist = await prisma.user.findUnique({
-		where: { username: username },
-	});
+	const userExist = await UserRepository.getUnique(username);
 
-	if (userExist) {
+	if (userExist != null) {
 		res.status(StatusCodes.BAD_REQUEST).json({
 			error: 'Já existe um usuário com esse username',
 		});
 		return;
 	}
-	const newUser = await prisma.user.create({
-		data: {
-			name,
-			username,
-		},
+	const newUser = await UserRepository.create({
+		name,
+		username,
 	});
 	res.status(StatusCodes.CREATED).json(newUser);
 };

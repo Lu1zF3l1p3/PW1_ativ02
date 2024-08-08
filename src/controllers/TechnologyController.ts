@@ -1,27 +1,18 @@
-import { PrismaClient } from '@prisma/client';
 import { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
-
-const prisma = new PrismaClient();
-
-interface userType {
-	id: string;
-	name: string;
-	username: string;
-}
+import { UserType } from '../models/UserType';
+import { TechnologyRepository } from '../repositories/TechnologyRepository';
 
 interface BodyType {
 	title: string;
 	deadline: string;
-	user: userType;
+	user: UserType;
 }
 
 export const TechnologyGet = async (req: Request, res: Response) => {
 	const { user } = req.body as BodyType;
 	res.status(StatusCodes.OK).json(
-		await prisma.technology.findMany({
-			where: { userId: user.id },
-		})
+		await TechnologyRepository.getByUserId(user.id)
 	);
 };
 
@@ -35,12 +26,10 @@ export const TechnologyPost = async (req: Request, res: Response) => {
 		return;
 	}
 
-	const newTechnology = await prisma.technology.create({
-		data: {
-			title,
-			deadline: new Date(deadline),
-			userId: user.id,
-		},
+	const newTechnology = await TechnologyRepository.create({
+		title,
+		deadline: new Date(deadline),
+		userId: user.id,
 	});
 	res.status(StatusCodes.CREATED).json(newTechnology);
 };
@@ -75,14 +64,14 @@ export const TechnologyPut = async (req: Request, res: Response) => {
 	// });
 
 	try {
-		let finded = await prisma.technology.update({
-			data: {
+		let finded = await TechnologyRepository.putById(
+			{
 				title,
 				deadline: new Date(deadline),
 				userId: user.id,
 			},
-			where: { id: id },
-		});
+			id
+		);
 		res.status(StatusCodes.OK).json(finded);
 	} catch (err) {
 		res.status(StatusCodes.NOT_FOUND).json({
@@ -112,12 +101,7 @@ export const TechnologyPatch = async (req: Request, res: Response) => {
 	// });
 
 	try {
-		let finded = await prisma.technology.update({
-			data: {
-				studied: true,
-			},
-			where: { id: id },
-		});
+		let finded = await TechnologyRepository.patchStudied(id);
 		res.status(StatusCodes.OK).json(finded);
 	} catch (err) {
 		res.status(StatusCodes.NOT_FOUND).json({
@@ -146,10 +130,8 @@ export const TechnologyDelete = async (req: Request, res: Response) => {
 	// });
 
 	try {
-		await prisma.technology.delete({
-			where: { id: id },
-		});
-		res.status(StatusCodes.OK).json(await prisma.technology.findMany());
+		await TechnologyRepository.deleteById(id);
+		res.status(StatusCodes.OK).json(await TechnologyRepository.getAll());
 	} catch (err) {
 		res.status(StatusCodes.NOT_FOUND).json({
 			error: 'Nenhuma tecnologia encontrada com o id: ' + id,
